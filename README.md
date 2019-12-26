@@ -9,7 +9,8 @@ A BIP 39 implementation in Go.
 
 Features:
 
-* Add IsMnemonicValid method for check sentences whether valid
+* **Add `IsMnemonicValid` method for check sentences whether valid**
+* **Add `RecoverFromMnemonic` method to recover mnemonic to seed**
 * Generating human readable sentences for seed generation - a la [BIP 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)
 * All languages mentioned in the [proposal](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) supported.
 * 128 bit (12 words) through 256 bit (24 words) entropy.
@@ -38,6 +39,7 @@ func main() {
     fmt.Println(m.Sentence())
     valid, _ := mnemonic.IsMnemonicValid(mnemonic.English, m.Sentence())
     fmt.Println(valid)
+    m, _ = mnemonic.RecoverFromMnemonic(mnemonic.English, m.Sentence())
 
     // inspect underlying words
     fmt.Println(m.Words)
