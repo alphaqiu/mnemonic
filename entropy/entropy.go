@@ -7,6 +7,11 @@ import (
 	"errors"
 )
 
+var (
+	ErrEntropyLengthInvalid = errors.New("entropy length must be [128, 256] and a multiple of 32")
+	ErrBitsChecksumLength   = errors.New("bits and checksum length error")
+)
+
 // Bits represents a byte slice of individual bits
 type Bits []byte
 
@@ -20,15 +25,31 @@ func FromHex(input string) ([]byte, error) {
 }
 
 // Random creates a random entropy of the given length
-func Random(length int) ([]byte, error) {
-	if length < 128 || length > 256 || length%32 > 0 {
-		return nil, errors.New("Entropy length must be between 128 and 256 inclusive, and be divisible by 32")
+// 助记词长度和随机值位数之间的关系
+// -----|----------|---------------|-------|
+// bits | checksum | bits+checksum | words |
+// -----|----------|---------------|-------|
+// 128  |   4      | 132           | 12    |
+// -----|----------|---------------|-------|
+// 160  |   5      | 165           | 15    |
+// -----|----------|---------------|-------|
+// 192  |   6      | 198           | 18    |
+// -----|----------|---------------|-------|
+// 224  |   7      | 231           | 21    |
+// -----|----------|---------------|-------|
+// 256  |   8      | 264           | 24    |
+// -----|----------|---------------|-------|
+func Random(bitSize int) ([]byte, error) {
+	if bitSize < 128 || bitSize > 256 || bitSize%32 > 0 {
+		return nil, ErrEntropyLengthInvalid
 	}
-	bytes := make([]byte, length/32)
+
+	bytes := make([]byte, bitSize/8)
 	_, err := rand.Read(bytes)
 	if err != nil {
 		return nil, err
 	}
+
 	return bytes, nil
 }
 
@@ -65,4 +86,44 @@ func bytesToBits(bytes []byte) Bits {
 		}
 	}
 	return bits
+}
+
+// 助记词长度和随机值位数之间的关系
+// -----|----------|---------------|-------|
+// bits | checksum | bits+checksum | words |
+// -----|----------|---------------|-------|
+// 128  |   4      | 132           | 12    |
+// -----|----------|---------------|-------|
+// 160  |   5      | 165           | 15    |
+// -----|----------|---------------|-------|
+// 192  |   6      | 198           | 18    |
+// -----|----------|---------------|-------|
+// 224  |   7      | 231           | 21    |
+// -----|----------|---------------|-------|
+// 256  |   8      | 264           | 24    |
+// -----|----------|---------------|-------|
+// length := len(bits) // bits+checksum
+// chks := length / 32 // checksum bits
+// bitsLen := length - chks // bits length
+func BitsToBytes(bits Bits) (ent []byte, chksum Bits) {
+	length := len(bits)
+	if length%32 == 0 && length < 132 && length > 264 {
+		return nil, nil
+	}
+
+	chks := length / 32
+	bytesLen := (length - chks) / 8
+	ent = make([]byte, 0, bytesLen)
+	for k := 0; k < bytesLen; k++ {
+		data := 0
+		for i := 8 - 1; i >= 0; i-- {
+			if bits[i+8*k] == 49 {
+				data += 1 << (8 - i - 1)
+			}
+		}
+		ent = append(ent, byte(data))
+	}
+
+	chksum = bits[length-chks:]
+	return ent, chksum
 }

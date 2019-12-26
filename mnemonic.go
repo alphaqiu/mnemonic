@@ -1,11 +1,13 @@
 package mnemonic
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/brianium/mnemonic/entropy"
+	"github.com/alphaqiu/mnemonic/entropy"
 )
 
 // Mnemonic represents a collection of human readable words
@@ -47,6 +49,38 @@ func NewRandom(length int, lang Language) (*Mnemonic, error) {
 	return New(ent, lang)
 }
 
+func IsMnemonicValid(lang Language, sentence string) (bool, error) {
+	words := strings.Split(sentence, " ")
+	buff := bytes.NewBuffer(nil)
+	for _, word := range words {
+		idx, err := GetIndex(lang, word)
+		if err != nil {
+			return false, err
+		}
+		buff.Write(paddingLeft([]byte(strconv.FormatInt(idx, 2))))
+	}
+
+	ent, chksum := entropy.BitsToBytes(buff.Bytes())
+	if ent == nil && chksum == nil {
+		return false, entropy.ErrBitsChecksumLength
+	}
+
+	return bytes.Equal(entropy.CheckSum(ent), chksum), nil
+}
+
+func paddingLeft(data []byte) []byte {
+	const chunkSize = 11
+	var ret [chunkSize]byte
+	length := len(data)
+	if length < chunkSize {
+		copy(ret[:chunkSize-length], zero)
+		copy(ret[chunkSize-length:], data)
+		return ret[:]
+	} else {
+		return data[:chunkSize]
+	}
+}
+
 // Sentence returns a Mnemonic's word collection as a space separated
 // sentence
 func (m *Mnemonic) Sentence() string {
@@ -54,6 +88,24 @@ func (m *Mnemonic) Sentence() string {
 		return strings.Join(m.Words, `　`)
 	}
 	return strings.Join(m.Words, " ")
+}
+
+func RecoverFromMnemonic(lang Language, sentence string) (m *Mnemonic, err error) {
+	var check bool
+	if check, err = IsMnemonicValid(lang, sentence); err != nil {
+		return nil, err
+	}
+
+	if !check {
+		return nil, errors.New("invalid mnemonic")
+	}
+
+	words := strings.Split(sentence, " ")
+	m = &Mnemonic{
+		Words:    words,
+		Language: lang,
+	}
+	return m, nil
 }
 
 // GenerateSeed returns a seed used for wallet generation per

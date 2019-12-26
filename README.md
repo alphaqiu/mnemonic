@@ -5,8 +5,11 @@
 
 A BIP 39 implementation in Go.
 
+**This project forked from https://github.com/brianium/mnemonic and change some code.**
+
 Features:
 
+* Add IsMnemonicValid method for check sentences whether valid
 * Generating human readable sentences for seed generation - a la [BIP 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)
 * All languages mentioned in the [proposal](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) supported.
 * 128 bit (12 words) through 256 bit (24 words) entropy.
@@ -24,7 +27,7 @@ package main
 
 import (
     "fmt"
-    "github.com/brianium/mnemonic"
+    "github.com/alphaqiu/mnemonic"
 )
 
 func main() {
@@ -33,6 +36,8 @@ func main() {
 
     // print the Mnemonic as a sentence
     fmt.Println(m.Sentence())
+    valid, _ := mnemonic.IsMnemonicValid(mnemonic.English, m.Sentence())
+    fmt.Println(valid)
 
     // inspect underlying words
     fmt.Println(m.Words)
@@ -57,8 +62,8 @@ package main
 
 import (
     "fmt"
-    "github.com/brianium/mnemonic"
-    "github.com/brianium/mnemonic/entropy"
+    "github.com/alphaqiu/mnemonic"
+    "github.com/alphaqiu/mnemonic/entropy"
 )
 
 func main() {
@@ -86,12 +91,12 @@ func main() {
 
 To install Mnemonic, use `go get`:
 
-    go get github.com/brianium/mnemonic
+    go get github.com/alphaqiu/mnemonic
 
 This will then make the following packages available to you:
 
-    github.com/brianium/mnemonic
-    github.com/brianium/mnemonic/entropy
+    github.com/alphaqiu/mnemonic
+    github.com/alphaqiu/mnemonic/entropy
 
 Import the `mnemonic` package into your code using this template:
 
@@ -99,7 +104,7 @@ Import the `mnemonic` package into your code using this template:
 package yours
 
 import (
-  "github.com/brianium/mnemonic"
+  "github.com/alphaqiu/mnemonic"
 )
 
 func MnemonicJam(passphrase string) {
